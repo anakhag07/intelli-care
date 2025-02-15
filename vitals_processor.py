@@ -2,6 +2,7 @@ import streamlit as st
 import time
 import pandas as pd
 from datetime import datetime, timedelta
+from openai_script import generate_vitals_summary
 
 def process_vitals(patient_data):
     # Create placeholders for vital signs display
@@ -15,12 +16,6 @@ def process_vitals(patient_data):
     # Initialize last warning time
     last_warning_time = None
     
-    # Initialize chat messages
-    if 'messages' not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Doctor A: I'm monitoring your patient's vitals. I'll notify you of any concerning changes."}
-        ]
-    
     for i in range(len(patient_data)):
         curr = patient_data[i]
         
@@ -32,9 +27,6 @@ def process_vitals(patient_data):
         - O2 Saturation: {curr['o2sat']}%
         - Blood Pressure: {curr['sbp']}/{curr['dbp']} mmHg
         """)
-        
-        # Update progress bar
-        progress_bar.progress((i + 1) / len(patient_data))
         
         # Check for crisis conditions if we have previous data
         if i > 0:
@@ -51,21 +43,44 @@ def process_vitals(patient_data):
             if hr_increase and rr_increase and o2_decline and bp_drop:
                 warning_display.markdown("<h1 style='text-align: center; color: red;'>⚠️ HEART ATTACK WARNING ⚠️</h1>", unsafe_allow_html=True)
                 
-                # Check if we should send a new warning message (1-minute intervals)
-                if last_warning_time is None or (current_time - last_warning_time) > timedelta(minutes=1):
-                    warning_message = {
-                        "role": "assistant",
-                        "content": f"Doctor A: ⚠️ URGENT: Patient showing signs of cardiac distress!\nHR: {curr['heartrate']}, RR: {curr['resprate']}, O2: {curr['o2sat']}, BP: {curr['sbp']}/{curr['dbp']}"
+                # Generate summary using OpenA
+                critical_vitals = {
+                    "timestamp": curr['charttime'],
+                    "vitals": {
+                        "temperature": curr['temperature'],
+                        "heart_rate": curr['heartrate'],
+                        "respiratory_rate": curr['resprate'], 
+                        "oxygen_saturation": curr['o2sat'],
+                        "blood_pressure": {
+                            "systolic": curr['sbp'],
+                            "diastolic": curr['dbp']
+                        },
+                        "heart_rhythm": curr['rhythm']
+                    },
+                    "changes_detected": {
+                        "heart_rate_increase": hr_increase,
+                        "respiratory_rate_increase": rr_increase,
+                        "oxygen_decline": o2_decline,
+                        "blood_pressure_drop": bp_drop
                     }
-                    st.session_state.messages.append(warning_message)
-                    last_warning_time = current_time
+                }
+                summary = generate_vitals_summary("", critical_vitals) #MAKE SURE YOU PUT IN UR OPENAI API KEY
+                
+                # Create JSON with current vitals
+                
+                warning_message = {
+                    "role": "assistant",
+                    "content": f"⚠️ URGENT: Heart Attack Warning Detected!\n\nPatient Summary:\n{summary}"
+                }
+                chat_display.markdown(f"{warning_message['content']}\n")
+                
+                # Stop monitoring after detecting heart attack
+                break
             else:
                 warning_display.empty()
         
-        # Display chat messages
-        chat_display.markdown("### 💬 Chat with Doctor A")
-        for message in st.session_state.messages:
-            chat_display.markdown(f"{message['content']}\n")
+        # Update progress bar
+        progress_bar.progress((i + 1) / len(patient_data))
         
         # Add a small delay to simulate real-time monitoring
         time.sleep(1)

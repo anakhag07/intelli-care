@@ -4,14 +4,12 @@ from openai import OpenAI
 
 from datetime import datetime
 
-# Initialize OpenAI client
-client = OpenAI()
 
 # Define structured response format
 class PatientSummary(BaseModel):
     patient_id: str
-    date: str
-    time: str
+    # date: str
+    # time: str
     temperature: float
     heart_rate: float
     respiratory_rate: float
@@ -21,33 +19,40 @@ class PatientSummary(BaseModel):
     heart_rhythm: str
     past_history: list[str]
     summary: str  # Summary of the patient's vitals and history
-
-# Read the CSV file
-df = pd.read_csv("patient_a_heart_attack_vitals.csv")
-
-# Iterate over each patient record
-for _, row in df.iterrows():
-    # Construct input message for GPT
-    timestamp = row['charttime']
-    dt_obj = datetime.strptime(timestamp, "%m/%d/%y %H:%M")
-    date_part = dt_obj.strftime("%Y-%m-%d")  # Output: '2025-02-15'
-    time_part = dt_obj.strftime("%H:%M")     # Output: '08:00'
+def generate_vitals_summary(api_key, patient_data):
+    client = OpenAI(api_key=api_key)
+    # Read the CSV file
+    # df = pd.read_csv(patient_data_file)
+    # Convert patient data to DataFrame format
+    df = pd.DataFrame([patient_data])
+    
+    # Extract data from the first row since we're processing a single record
+    row = df.iloc[0]
+    
+    # Parse timestamp
+    # timestamp = row['timestamp']
+    # dt_obj = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+    # date_part = dt_obj.strftime("%Y-%m-%d") 
+    # time_part = dt_obj.strftime("%H:%M")
+    
+    # Extract vitals from nested dictionary
+    vitals = row['vitals']
+    changes = row['changes_detected']
+    
     past_history = ["heart attack"]
 
     patient_info = f"""
-    Patient ID: {row['subject_id']}
-    Date: {date_part}
-    Time: {time_part}
-    Temperature: {row['temperature']} °F
-    Heart Rate: {row['heartrate']} bpm
-    Respiratory Rate: {row['resprate']} breaths/min
-    Oxygen Saturation: {row['o2sat']}%
-    Systolic Blood Pressure: {row['sbp']}
-    Diastolic Blood Pressure: {row['dbp']}
-    Heart Rhythm: {row['rhythm']}
+    Patient ID: {row['patient_id'] if 'patient_id' in row else 'Unknown'}
+    Temperature: {vitals['temperature']} °F
+    Heart Rate: {vitals['heart_rate']} bpm
+    Respiratory Rate: {vitals['respiratory_rate']} breaths/min
+    Oxygen Saturation: {vitals['oxygen_saturation']}%
+    Systolic Blood Pressure: {vitals['blood_pressure']['systolic']}
+    Diastolic Blood Pressure: {vitals['blood_pressure']['diastolic']}
+    Heart Rhythm: {vitals['heart_rhythm']}
     Past Medical History: {past_history}
+    Changes Detected: {changes}
     """
-
     # Call OpenAI API to summarize patient vitals
     completion = client.beta.chat.completions.parse(
         model="gpt-4o-2024-08-06",
@@ -58,7 +63,7 @@ for _, row in df.iterrows():
         response_format=PatientSummary,
     )
 
-    # Extract structured response
+        # Extract structured response
     patient_summary = completion.choices[0].message.parsed
-    print(f"Summary for {row['subject_id']}:\n{patient_summary.summary}\n")
+    return patient_summary.summary
 
