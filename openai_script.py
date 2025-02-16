@@ -4,8 +4,7 @@ from openai import OpenAI
 
 from datetime import datetime
 
-OPEN_API_KEY = "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"
-
+OPEN_API_KEY = ""
 # Define structured response format
 class PatientSummary(BaseModel):
     patient_id: str
