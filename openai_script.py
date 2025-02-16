@@ -4,6 +4,7 @@ from openai import OpenAI
 
 from datetime import datetime
 
+OPEN_API_KEY = "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"
 
 # Define structured response format
 class PatientSummary(BaseModel):
@@ -51,7 +52,6 @@ def generate_vitals_summary(api_key, patient_data):
     Diastolic Blood Pressure: {vitals['blood_pressure']['diastolic']}
     Heart Rhythm: {vitals['heart_rhythm']}
     Past Medical History: {past_history}
-    Changes Detected: {changes}
     """
     # Call OpenAI API to summarize patient vitals
     completion = client.beta.chat.completions.parse(
