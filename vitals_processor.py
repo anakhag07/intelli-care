@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from openai_script import generate_vitals_summary
 import lightgbm as lgb
 
-OPEN_API_KEY = "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"
+OPEN_API_KEY = ""
 
 def process_vitals(patient_data):
     """Process vitals using AI model with dynamic risk scoring"""
