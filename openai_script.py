@@ -37,7 +37,7 @@ def generate_vitals_summary(api_key, patient_data):
     
     # Extract vitals from nested dictionary
     vitals = row['vitals']
-    changes = row['changes_detected']
+    # changes = row['changes_detected']
     
     past_history = ["heart attack"]
 
