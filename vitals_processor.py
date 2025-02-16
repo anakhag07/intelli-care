@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from openai_script import generate_vitals_summary
 import lightgbm as lgb
+from openface_symmetry import process_facial_symmetry
 
 OPEN_API_KEY = ""
 
@@ -203,28 +204,45 @@ def process_vitals_rule_based(patient_data):
         time.sleep(1)
 
 def main():
-    st.title("Patient Vital Signs Monitor")
+    st.title("Patient Monitoring System")
     
-    uploaded_file = st.file_uploader("Upload patient vitals CSV file", type=['csv'])
+    # Create tabs
+    tab1, tab2 = st.tabs(["Vitals Monitor", "Facial Symmetry"])
     
-    if uploaded_file is not None:
-        # Read the CSV file
-        df = pd.read_csv(uploaded_file)
-        patient_data = df.to_dict('records')
+    with tab1:
+        st.header("Patient Vital Signs Monitor")
+        uploaded_file = st.file_uploader("Upload patient vitals CSV file", type=['csv'], key="vitals_uploader")
         
-        # Add monitoring method selection
-        monitoring_method = st.radio(
-            "Select Monitoring Method",
-            ["AI Model", "Rule-based"],
-            help="Choose between AI model prediction or rule-based monitoring"
-        )
+        if uploaded_file is not None:
+            # Read the CSV file
+            df = pd.read_csv(uploaded_file)
+            patient_data = df.to_dict('records')
+            
+            # Add monitoring method selection
+            monitoring_method = st.radio(
+                "Select Monitoring Method",
+                ["AI Model", "Rule-based"],
+                help="Choose between AI model prediction or rule-based monitoring"
+            )
+            
+            # Add a start button
+            if st.button("Start Monitoring"):
+                if monitoring_method == "AI Model":
+                    process_vitals(patient_data)  # Original AI-based monitoring
+                else:
+                    process_vitals_rule_based(patient_data)  # New rule-based monitoring
+    
+    with tab2:
+        st.header("Facial Symmetry Analysis")
+        face_file = st.file_uploader("Upload OpenFace CSV file", type=['csv'], key="face_uploader")
         
-        # Add a start button
-        if st.button("Start Monitoring"):
-            if monitoring_method == "AI Model":
-                process_vitals(patient_data)  # Original AI-based monitoring
-            else:
-                process_vitals_rule_based(patient_data)  # New rule-based monitoring
+        if face_file is not None:
+            if st.button("Process Facial Symmetry"):
+                stroke_detected = process_facial_symmetry(face_file)
+                if stroke_detected:
+                    st.markdown("<h1 style='text-align: center; color: red;'>⚠️ STROKE DETECTED ⚠️</h1>", unsafe_allow_html=True)
+                else:
+                    st.markdown("<h1 style='text-align: center; color: green;'>✅ NO STROKE DETECTED</h1>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
